@@ -51,6 +51,11 @@ SET(SRC_LIST
 	${CMAKE_CURRENT_SOURCE_DIR}/himawari8/curlservice.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/himawari8/download_server.h
 	${CMAKE_CURRENT_SOURCE_DIR}/himawari8/download_server.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/himawari8/pngconver.h
+	${CMAKE_CURRENT_SOURCE_DIR}/himawari8/pngconver.cpp
+	
+	${CMAKE_CURRENT_SOURCE_DIR}/lodepng/lodepng.h
+	${CMAKE_CURRENT_SOURCE_DIR}/lodepng/lodepng.cpp
 	)
 
 SOURCE_GROUP(base FILES
@@ -77,6 +82,12 @@ SOURCE_GROUP(himawari8 FILES
 	${CMAKE_CURRENT_SOURCE_DIR}/himawari8/curlservice.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/himawari8/download_server.h
 	${CMAKE_CURRENT_SOURCE_DIR}/himawari8/download_server.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/himawari8/pngconver.h
+	${CMAKE_CURRENT_SOURCE_DIR}/himawari8/pngconver.cpp
+	)
+SOURCE_GROUP(lodepng FILES
+	${CMAKE_CURRENT_SOURCE_DIR}/lodepng/lodepng.h
+	${CMAKE_CURRENT_SOURCE_DIR}/lodepng/lodepng.cpp
 	)
 #########################################################################
 #Step 4 : Add PROJECT define 
