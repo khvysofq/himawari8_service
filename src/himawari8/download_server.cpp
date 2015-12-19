@@ -91,18 +91,29 @@ bool DownloadServer::DownloadHimawari8Image(ImageSetting &img_setting,
 
 bool DownloadServer::DownloadFullHimawari8Image(ImageSetting &img_setting,
     const std::string folder_path) {
+  // CompositeSettings
+  CompositeSettings com_settins;
   // 1. Reset the task queue
   ResetTaskQueue();
   for(uint32 x = 0; x < img_setting.precision; x++) {
+    ImageItems image_items;
     for(uint32 y = 0; y < img_setting.precision; y++) {
+      ImageItem item;
       img_setting.x = x;
       img_setting.y = y;
+      item.filename = GeneartorFilePath(img_setting, folder_path);
+      image_items.push_back(item);
       // 2. Insert task
       InsertTask(img_setting, folder_path, DEFUALT_TRY_TIMES);
     }
+    com_settins.push_back(image_items);
   }
   // Running task
-  return RunTask();
+  if(RunTask()) {
+    return PngConver::CompositeImage(com_settins,
+                                     GeneartorFullFilePath(img_setting, folder_path));
+  }
+  return false;
 }
 
 void DownloadServer::AutoDownloadHimawari8Imagg(
@@ -137,6 +148,44 @@ void DownloadServer::AutoDownloadHimawari8Imagg(
     LOG_INFO << "Sleep 30 minuter ... ..., go to next loop";
     Sleep(30 * 1000);
   }
+}
+
+bool DownloadServer::AutoDownloadFullHimawari8Image(
+  const std::string folder_path) {
+  ImageSetting img_setting;
+  img_setting.x = 0;
+  img_setting.y = 0;
+  while(1) {
+    LOG_INFO << "Start getting the last himawari8 image information";
+    ImageSetting is;
+    bool res_time = GetLastHimawari8ImageTime(is);
+    if(!res_time) {
+      LOG_ERROR << "Failure to getting last information";
+      LOG_INFO << "Sleep 30 seconds, and then try again ... ...";
+      Sleep(30 * 1000);
+      continue;
+    }
+    DumpImageSetting(is);
+    if(is.img_time != img_setting.img_time) {
+      img_setting.img_time = is.img_time;
+    } else {
+      LOG_INFO << "The image not update, Sleep 1 minutes, and check again";
+      Sleep(60 * 1000);
+      continue;
+    }
+    // 1d
+    img_setting.precision = 1;
+    DownloadFullHimawari8Image(img_setting, folder_path);
+    // 2d
+    img_setting.precision = 2;
+    DownloadFullHimawari8Image(img_setting, folder_path);
+    // 4d
+    img_setting.precision = 4;
+    DownloadFullHimawari8Image(img_setting, folder_path);
+    LOG_INFO << "Sleep 30 minuter ... ..., go to next loop";
+    Sleep(30 * 1000);
+  }
+  return true;
 }
 
 bool DownloadServer::DownloadLastHimawari8Image(ImageSetting &img_setting,
@@ -225,17 +274,32 @@ bool DownloadServer::SaveImageFile(ImageSetting &img_setting,
 
 const std::string DownloadServer::GeneartorFilePath(ImageSetting &img_setting,
     const std::string folder_path) {
-  std::stringstream ss;
-  ss << folder_path;
-  ss << img_setting.img_time.year << "_"
-     << img_setting.img_time.month << "_"
-     << img_setting.img_time.mday << "_"
-     << img_setting.img_time.hour << "_"
-     << img_setting.img_time.minute << "_"
-     << img_setting.precision << "d_"
-     << img_setting.x << "_" << img_setting.y << "_"
-     << ".png";
-  return ss.str();
+  static const char FILE_FORMAT[] = "%s/%04d_%02d_%02d_%02d_%02d_00_%dd_%d_%d.png";
+  static char FILE_PATH[MAX_URL_SIZE];
+  sprintf(FILE_PATH, FILE_FORMAT, folder_path.c_str(),
+          img_setting.img_time.year,
+          img_setting.img_time.month,
+          img_setting.img_time.mday,
+          img_setting.img_time.hour,
+          img_setting.img_time.minute,
+          img_setting.precision,
+          img_setting.x,
+          img_setting.y);
+  return FILE_PATH;
+}
+
+const std::string DownloadServer::GeneartorFullFilePath(
+  ImageSetting &img_setting, const std::string folder_path) {
+  static const char FILE_FORMAT[] = "%s/%04d_%02d_%02d_%02d_%02d_00_%dd.png";
+  static char FILE_PATH[MAX_URL_SIZE];
+  sprintf(FILE_PATH, FILE_FORMAT, folder_path.c_str(),
+          img_setting.img_time.year,
+          img_setting.img_time.month,
+          img_setting.img_time.mday,
+          img_setting.img_time.hour,
+          img_setting.img_time.minute,
+          img_setting.precision);
+  return FILE_PATH;
 }
 
 void DownloadServer::InsertTask(ImageSetting &img_setting,

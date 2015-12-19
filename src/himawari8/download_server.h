@@ -23,6 +23,7 @@
 #include "base/baseinclude.h"
 #include "himawari8/curlservice.h"
 #include "base/timeutils.h"
+#include "himawari8/pngconver.h"
 
 namespace himsev {
 
@@ -74,6 +75,7 @@ class DownloadServer : public noncopyable,
                                   const std::string folder_path);
   bool DownloadFullHimawari8Image(ImageSetting &img_setting,
                                   const std::string folder_path);
+  bool AutoDownloadFullHimawari8Image(const std::string folder_path);
   void AutoDownloadHimawari8Imagg(const std::string folder_path,
                                   uint32 precision);
  private:
@@ -87,6 +89,8 @@ class DownloadServer : public noncopyable,
                      const std::string &image_buffer);
   const std::string GeneartorFilePath(ImageSetting &img_setting,
                                       const std::string folder_path);
+  const std::string GeneartorFullFilePath(ImageSetting &img_setting,
+                                          const std::string folder_path);
   void DumpImageSetting(ImageSetting &img_setting);
 
   //

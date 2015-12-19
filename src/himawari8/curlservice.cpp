@@ -98,6 +98,8 @@ bool CurlService::SyncProcessGetRequest(
   curl = curl_easy_init();
   if (curl) {
     curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT,30L);
+    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 20L);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &rep);
     // Perform the request, res will get the return code
@@ -122,8 +124,9 @@ bool CurlService::SyncProcessPostRequest(const std::string &url,
   curl = curl_easy_init();
   if (curl) {
     curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT,30L);
+    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 20L);
     curl_easy_setopt(curl, CURLOPT_POST, 1L);
-
     /* we want to use our own read function */
     // curl_easy_setopt(curl, CURLOPT_READFUNCTION, read_callback);
     /* pointer to pass to our read function */
