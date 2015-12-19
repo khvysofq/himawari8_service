@@ -22,7 +22,7 @@
 #include "himawari8/download_server.h"
 
 const char DEFAULT_IMG_FOLDER_PATH[] =
-  "F:/code/osc/himawari8_service/bin/image/";
+  "F:/code/osc/himawari8_service/bin/image_auto/";
 
 int main(int argv, char* argc[]) {
 #ifdef GOOGLE_GLOG_LIBRARY
@@ -38,12 +38,12 @@ int main(int argv, char* argc[]) {
   himsev::DownloadServer download_server(curl_service);
 
   himsev::ImageSetting image_setting;
-  image_setting.precision = 1;
+  image_setting.precision = 4;
   image_setting.img_time.year = 2015;
   image_setting.img_time.month = 12;
-  image_setting.img_time.mday = 18;
-  image_setting.img_time.hour = 16;
-  image_setting.img_time.minute = 20;
+  image_setting.img_time.mday = 19;
+  image_setting.img_time.hour = 1;
+  image_setting.img_time.minute = 30;
   image_setting.x = 0;
   image_setting.y = 0;
 
@@ -55,7 +55,8 @@ int main(int argv, char* argc[]) {
 
   //download_server.DownloadFullHimawari8Image(image_setting,
   //                           DEFAULT_IMG_FOLDER_PATH);
-  download_server.AutoDownloadHimawari8Imagg(
-    DEFAULT_IMG_FOLDER_PATH, 1);
+  download_server.AutoDownloadFullHimawari8Image(DEFAULT_IMG_FOLDER_PATH);
+  //download_server.AutoDownloadHimawari8Imagg(
+  //  DEFAULT_IMG_FOLDER_PATH, 1);
   return 0;
 }

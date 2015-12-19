@@ -165,3 +165,4 @@ ADD_SUBDIRECTORY(src)
 # TEST
 ADD_SUBDIRECTORY(test/basictest)
 ADD_SUBDIRECTORY(test/download_himawari8_image)
+ADD_SUBDIRECTORY(test/pngconver)
