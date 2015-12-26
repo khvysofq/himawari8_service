@@ -32,12 +32,25 @@ endforeach()
  endif()
 #########################################################################
 #Step 3 : Add code source
-SET(SRC_LIST 
-	${CMAKE_CURRENT_SOURCE_DIR}/download_himawari8_image_main.cpp
+IF(WIN32)
+	SET(SRC_LIST 
+		${CMAKE_CURRENT_SOURCE_DIR}/download_himawari8_image_main.cpp
+		)
+	SOURCE_GROUP(${BUILD_PROJECT_NAME} FILES
+		${CMAKE_CURRENT_SOURCE_DIR}/download_himawari8_image_main.cpp
 	)
-SOURCE_GROUP(${BUILD_PROJECT_NAME} FILES
-	${CMAKE_CURRENT_SOURCE_DIR}/download_himawari8_image_main.cpp
-)
+ELSE()
+	SET(SRC_LIST 
+		${CMAKE_CURRENT_SOURCE_DIR}/download_himawari8_image_main.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/getopt.c
+		${CMAKE_CURRENT_SOURCE_DIR}/getopt.h
+		)
+	SOURCE_GROUP(${BUILD_PROJECT_NAME} FILES
+		${CMAKE_CURRENT_SOURCE_DIR}/download_himawari8_image_main.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/getopt.c
+		${CMAKE_CURRENT_SOURCE_DIR}/getopt.h
+	)
+ENDIF()
 #########################################################################
 #Step 4 : Add PROJECT define 
 MESSAGE(STATUS "Step 4 : Add code source")
