@@ -26,8 +26,14 @@ http://himawari8.nict.go.jp/img/D531106/{TILE_COUNT}d/550/2015/12/17/083000_{x}_
 ```
 http://himawari8.nict.go.jp/
 https://www.v2ex.com/t/241563
+High Definition Earth-Viewing System
 ```
 
 ## 任务列表
 
 1. 写一个程序，能够自动抓取`himawari8`的`1 * 1 (550 * 550)`, `2 * 2 (1100 * 1100)`, `4 * 4 (2200 * 2200)`, `8 * 8 (4400 * 4400)`图片，并且合成一张大图
+
+```
+https://github.com/dandelany/animate-earth/blob/master/scrape.js#L22
+http://www.jma.go.jp/en/gms/imgs_c/6/visible/0/201512200430-00.png
+```

@@ -20,6 +20,7 @@
 
 #include <string>
 #include <vector>
+#include <thread>
 #include "base/baseinclude.h"
 #include "himawari8/curlservice.h"
 #include "base/timeutils.h"
@@ -43,9 +44,12 @@ struct HimTime {
   bool operator!=(HimTime &other) {
     return !operator==(other);
   }
+  time_t ToTimeStamp();
+  const std::string ToString();
 };
 
 struct ImageSetting {
+  typedef std::shared_ptr<ImageSetting> Ptr;
   uint32 precision;
   HimTime img_time;
   uint32 x;
@@ -61,11 +65,32 @@ struct Task {
   std::size_t try_times;
 };
 
+class DownloadServer;
+typedef std::shared_ptr<DownloadServer> DownloadServerPtr;
+
+class DownloadingTask :public noncopyable,
+  public std::enable_shared_from_this<DownloadingTask> {
+ public:
+  typedef std::shared_ptr<DownloadingTask> Ptr;
+  DownloadingTask(ImageSetting::Ptr image_setting,
+                  const std::string folder_path,
+                  DownloadServerPtr download_server);
+  virtual ~DownloadingTask();
+  void StartDownloading();
+ private:
+  void OnThreadDownloading();
+ private:
+  ImageSetting::Ptr img_setting_;
+  std::string folder_path_;
+  DownloadServerPtr download_server_;
+  std::shared_ptr<std::thread> downloading_thread_;
+};
+
 class DownloadServer : public noncopyable,
   public std::enable_shared_from_this<DownloadServer> {
  public:
   typedef std::shared_ptr<DownloadServer> Ptr;
-  DownloadServer(CurlService::Ptr curl_service);
+  DownloadServer(CurlService::Ptr curl_service, bool is_upload = false);
   virtual ~DownloadServer();
 
   // Download
@@ -78,11 +103,16 @@ class DownloadServer : public noncopyable,
   bool AutoDownloadFullHimawari8Image(const std::string folder_path);
   void AutoDownloadHimawari8Imagg(const std::string folder_path,
                                   uint32 precision);
+  bool FormatDateToImageSetting(const std::string &date,
+                                ImageSetting &img_setting);
+  bool UploadImage(ImageSetting &img_setting);
+
+  bool AbsoluteUploadImage(ImageSetting &img_setting,
+                           const std::string folder_path,
+                           bool add_precision = true);
  private:
   bool GetLastHimawari8ImageTime(ImageSetting &img_setting);
 
-  bool FormatDateToImageSetting(const std::string &date,
-                                ImageSetting &img_setting);
 
   bool SaveImageFile(ImageSetting &img_setting,
                      const std::string folder_path,
@@ -91,21 +121,19 @@ class DownloadServer : public noncopyable,
                                       const std::string folder_path);
   const std::string GeneartorFullFilePath(ImageSetting &img_setting,
                                           const std::string folder_path);
+  const std::string GetFileName(ImageSetting &img_setting);
+  const std::string GetCompositeFileName(ImageSetting &img_setting);
   void DumpImageSetting(ImageSetting &img_setting);
 
-  //
-  void ResetTaskQueue() {
-    task_queue_.clear();
-  }
-  void InsertTask(ImageSetting &img_setting,
-                  const std::string folder_path,
-                  std::size_t try_times);
-  bool RunTask();
+  bool RunTask(std::vector<Task::Ptr> &task_queue);
+  bool UploadImageToOSS(const std::string &url,
+                        const std::string &image_data);
+  bool LoadLocalFile(const std::string &path_name, std::string &res_data);
+  void WriteDataToLog(const std::string &data);
  private:
-  static const std::size_t DEFUALT_TRY_TIMES = 16;
-  static const int MAX_URL_SIZE = 1024;
+  static const std::size_t DEFUALT_TRY_TIMES = 256;
   CurlService::Ptr curl_service_;
-  std::vector<Task::Ptr> task_queue_;
+  bool is_upload_;
 };
 }  // namespace himsev
 

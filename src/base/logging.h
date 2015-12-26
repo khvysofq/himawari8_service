@@ -36,6 +36,7 @@ namespace himsev {
 #define DLOG_INFO DLOG(INFO)
 #define DLOG_WARNING DLOG(WARNING)
 #define DLOG_ERROR DLOG(WARNING)
+
 #else
 
 #define LOG_INFO std::cout

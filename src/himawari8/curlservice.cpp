@@ -69,6 +69,7 @@ bool CurlService::InitServerResouce() {
 
 //////////////////////////////////////////////////////////////////////////////
 // global curl write callback function
+
 static size_t write_callback(void *data,
                              size_t size, size_t nmemb, void *userp) {
   int size_data = size * nmemb;
@@ -76,17 +77,28 @@ static size_t write_callback(void *data,
   return size_data;
 }
 
+struct PostData {
+  const char *pdata;
+  std::size_t cur_pos;
+  std::size_t data_size;
+};
+
 static size_t read_callback(void *ptr, size_t size, size_t nmemb, void *userp) {
-  std::string *pdata = (std::string *)(userp);
+  PostData *post_data = (PostData *)(userp);
 
   if (size * nmemb < 1)
     return 0;
-  if (size * nmemb != pdata->size()) {
-    return 0;
+  std::size_t write_size = 0;
+  std::size_t remain_size = post_data->data_size - post_data->cur_pos;
+  if(remain_size > size * nmemb) {
+    write_size = size * nmemb;
+  } else {
+    write_size = remain_size;
   }
-  // Use reinterpret_cast<void *>
-  ptr = (void *)(pdata->c_str()); // NOLINT
-  return pdata->size();
+  memcpy(ptr, post_data->pdata + post_data->cur_pos, write_size);
+  post_data->cur_pos += write_size;
+  LOG(INFO) << post_data->cur_pos;
+  return write_size;
 }
 //////////////////////////////////////////////////////////////////////////////
 
@@ -118,8 +130,15 @@ bool CurlService::SyncProcessGetRequest(
 
 bool CurlService::SyncProcessPostRequest(const std::string &url,
     const std::string &data, std::string &rep) {
+  //std::lock_guard<std::mutex> lock_copy(kvs_mutex_);
   CURL *curl;
   CURLcode res;
+
+  PostData post_data;
+
+  post_data.cur_pos = 0;
+  post_data.data_size = data.size();
+  post_data.pdata = data.c_str();
 
   curl = curl_easy_init();
   if (curl) {
@@ -128,18 +147,20 @@ bool CurlService::SyncProcessPostRequest(const std::string &url,
     curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 20L);
     curl_easy_setopt(curl, CURLOPT_POST, 1L);
     /* we want to use our own read function */
-    // curl_easy_setopt(curl, CURLOPT_READFUNCTION, read_callback);
+    curl_easy_setopt(curl, CURLOPT_READFUNCTION, read_callback);
+    curl_easy_setopt(curl, CURLOPT_READDATA, &post_data);
+
     /* pointer to pass to our read function */
-    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data.c_str());
     curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, data.size());
 
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &rep);
+    // curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
     // setting the content type
 
     struct curl_slist *slist = 0;
     slist = curl_slist_append(
-              slist, "Content-Type: application/x-www-form-urlencoded");
+              slist, "Content-Type: image/png");
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, slist);
     // Perform the request, res will get the return code
     res = curl_easy_perform(curl);

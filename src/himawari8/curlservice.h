@@ -37,7 +37,7 @@ class CurlService : public noncopyable,
 
   bool SyncProcessGetRequest(const std::string &url, std::string &rep);  // NOLINT
   bool SyncProcessPostRequest(const std::string &url,  // NOLINT
-    const std::string &data, std::string &rep);  // NOLINT
+                              const std::string &data, std::string &rep);  // NOLINT
  private:
   //
   CurlService();
@@ -46,6 +46,7 @@ class CurlService : public noncopyable,
   bool InitServerResouce();
 
   static CurlService::Ptr service_instance_;
+  std::mutex kvs_mutex_;
 };
 }  // namespace himsev
 

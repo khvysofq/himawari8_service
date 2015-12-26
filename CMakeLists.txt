@@ -15,6 +15,7 @@ SET(PROJECT_SET_NAME_THIRD_PART "third_part")
 SET(LIB_CURL ${PROJECT_SOURCE_DIR}/third_part/curl)
 SET(JSON_CPP ${PROJECT_SOURCE_DIR}/third_part/jsoncpp)
 SET(GLOG ${PROJECT_SOURCE_DIR}/third_part/glog)
+# SET(OSS_C_SDK ${PROJECT_SOURCE_DIR}/third_part/oss_c_sdk_windows/oss_c_sdk_lib)
 
 option(USE_GLOG "Set to ON to USE Glog executable." ON)
 
@@ -28,6 +29,12 @@ IF(USE_GLOG)
 		${GLOG}/src
 		${JSON_CPP}/include
 		${PROJECT_SOURCE_DIR}/src
+		# ${OSS_C_SDK}/oss_c_sdk_lib
+		# ${OSS_C_SDK}/oss_c_sdk_lib/third_party/include
+		# ${OSS_C_SDK}/oss_c_sdk_lib/third_party/include/apr
+		# ${OSS_C_SDK}/oss_c_sdk_lib/third_party/include/aprutil
+		# ${OSS_C_SDK}/oss_c_sdk_lib/third_party/include/libxml
+		# ${OSS_C_SDK}/oss_c_sdk_lib/third_party/include/mxml
 	)
 ELSE()
 	SET(HIMAWARI8_SERVICE_INCLUDE_DIR
@@ -35,6 +42,12 @@ ELSE()
 		${PROJECT_BINARY_DIR}/third_part/curl/include/curl
 		${JSON_CPP}/include
 		${PROJECT_SOURCE_DIR}/src
+		# ${OSS_C_SDK}/oss_c_sdk_lib
+		# ${OSS_C_SDK}/oss_c_sdk_lib/third_party/include
+		# ${OSS_C_SDK}/oss_c_sdk_lib/third_party/include/apr
+		# ${OSS_C_SDK}/oss_c_sdk_lib/third_party/include/aprutil
+		# ${OSS_C_SDK}/oss_c_sdk_lib/third_party/include/libxml
+		# ${OSS_C_SDK}/oss_c_sdk_lib/third_party/include/mxml
 	)
 ENDIF()
 
@@ -69,6 +82,10 @@ IF(WIN32)
 		winmm.lib
 		${GLOG_LIB_NAME}
 		libhimawari8_service.lib
+		# oss_c_sdk_lib.lib
+		# apr-1.lib
+		# aprutil-1.lib
+		# xml2.lib
 		)
 ELSE()
 	MESSAGE(STATUS "       LINUX")
@@ -109,19 +126,19 @@ LINK_DIRECTORIES(${HIMAWARI8_SERVICE_LIBRARY_DIR})
 #####################################################################
 # Step 3 :Set visual studio runtime type
 if(WIN32)
-	set(CompilerFlags
-			CMAKE_CXX_FLAGS
-			CMAKE_CXX_FLAGS_DEBUG
-			CMAKE_CXX_FLAGS_RELEASE
-			CMAKE_C_FLAGS
-			CMAKE_C_FLAGS_DEBUG
-			CMAKE_C_FLAGS_RELEASE
-			)
-	foreach(CompilerFlag ${CompilerFlags})
-	  string(REPLACE "/MD" "/MT" ${CompilerFlag} "${${CompilerFlag}}")
-	  string(REPLACE "/MDd" "/MTd" ${CompilerFlag} "${${CompilerFlag}}")
-	  #string(REPLACE "/EDITANDCONTINUE" "/SAFESEH" ${CompilerFlag} "${${CompilerFlag}}")
-	endforeach()
+	#set(CompilerFlags
+	#		CMAKE_CXX_FLAGS
+	#		CMAKE_CXX_FLAGS_DEBUG
+	#		CMAKE_CXX_FLAGS_RELEASE
+	#		CMAKE_C_FLAGS
+	#		CMAKE_C_FLAGS_DEBUG
+	#		CMAKE_C_FLAGS_RELEASE
+	#		)
+	#foreach(CompilerFlag ${CompilerFlags})
+	#  string(REPLACE "/MD" "/MT" ${CompilerFlag} "${${CompilerFlag}}")
+	#  string(REPLACE "/MDd" "/MTd" ${CompilerFlag} "${${CompilerFlag}}")
+	#  #string(REPLACE "/EDITANDCONTINUE" "/SAFESEH" ${CompilerFlag} "${${CompilerFlag}}")
+	#endforeach()
 	
 ################################################################
 	
@@ -166,3 +183,4 @@ ADD_SUBDIRECTORY(src)
 ADD_SUBDIRECTORY(test/basictest)
 ADD_SUBDIRECTORY(test/download_himawari8_image)
 ADD_SUBDIRECTORY(test/pngconver)
+ADD_SUBDIRECTORY(test/osstest)

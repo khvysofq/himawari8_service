@@ -19,12 +19,17 @@
 #include <string>
 #include <sstream>
 #include <stdio.h>
+//#include "aos_http_io.h"
+//#include "oss_api.h"
 #include "curl/curl.h"
 #include "base/logging.h"
 #include "json/json.h"
+#include "base/timeutils.h"
 
 
 namespace himsev {
+
+static const int MAX_URL_SIZE = 1024;
 
 const char HIMAWARI8_URL_FORMAT[] =
   "http://himawari8.nict.go.jp/img/D531106/%dd/550/%04d/%02d/%02d/%02d%02d00_%d_%d.png";
@@ -59,13 +64,47 @@ ImageSetting &ImageSetting::operator=(ImageSetting &other) {
   y = other.y;
   return *this;
 }
+
+time_t HimTime::ToTimeStamp() {
+  tm current_time;
+  memset(&current_time, 0, sizeof(tm));
+  current_time.tm_year = year - 1900;
+  current_time.tm_mon = month - 1;
+  current_time.tm_mday = mday;
+  current_time.tm_hour = hour;
+  current_time.tm_min = minute;
+  return mktime(&current_time);
+}
+
+const std::string HimTime::ToString() {
+  static const char FILE_FORMAT[] = "%04d_%02d_%02d_%02d_%02d_00";
+  static char TIME_STRING[MAX_URL_SIZE];
+  sprintf(TIME_STRING, FILE_FORMAT,
+          year,
+          month,
+          mday,
+          hour,
+          minute);
+  return TIME_STRING;
+}
+
 //------------------------------------------------------------------------------
 
-DownloadServer::DownloadServer(CurlService::Ptr curl_service)
-  : curl_service_(curl_service) {
+DownloadServer::DownloadServer(CurlService::Ptr curl_service,
+                               bool is_upload)
+  : curl_service_(curl_service),
+    is_upload_(is_upload) {
+  if(is_upload_) {
+    //if (aos_http_io_initialize("Himawari8_service", 0) != AOSE_OK) {
+    //  exit(1);
+    //}
+  }
 }
 
 DownloadServer::~DownloadServer() {
+  if(is_upload_) {
+    //aos_http_io_deinitialize();
+  }
 }
 
 bool DownloadServer::DownloadHimawari8Image(ImageSetting &img_setting,
@@ -94,7 +133,7 @@ bool DownloadServer::DownloadFullHimawari8Image(ImageSetting &img_setting,
   // CompositeSettings
   CompositeSettings com_settins;
   // 1. Reset the task queue
-  ResetTaskQueue();
+  std::vector<Task::Ptr> task_queue;
   for(uint32 x = 0; x < img_setting.precision; x++) {
     ImageItems image_items;
     for(uint32 y = 0; y < img_setting.precision; y++) {
@@ -104,14 +143,24 @@ bool DownloadServer::DownloadFullHimawari8Image(ImageSetting &img_setting,
       item.filename = GeneartorFilePath(img_setting, folder_path);
       image_items.push_back(item);
       // 2. Insert task
-      InsertTask(img_setting, folder_path, DEFUALT_TRY_TIMES);
+
+      Task::Ptr task(new Task);
+      task->try_times = DEFUALT_TRY_TIMES;
+      task->img_setting = img_setting;
+      task->folder_path = folder_path;
+      task_queue.push_back(task);
     }
     com_settins.push_back(image_items);
   }
   // Running task
-  if(RunTask()) {
-    return PngConver::CompositeImage(com_settins,
-                                     GeneartorFullFilePath(img_setting, folder_path));
+  if(RunTask(task_queue)) {
+    bool res_cov = PngConver::CompositeImage(
+                     com_settins, GeneartorFullFilePath(
+                       img_setting,
+                       folder_path));
+    if(res_cov) {
+      return AbsoluteUploadImage(img_setting, folder_path, false);
+    }
   }
   return false;
 }
@@ -169,21 +218,18 @@ bool DownloadServer::AutoDownloadFullHimawari8Image(
     if(is.img_time != img_setting.img_time) {
       img_setting.img_time = is.img_time;
     } else {
-      LOG_INFO << "The image not update, Sleep 1 minutes, and check again";
-      Sleep(60 * 1000);
+      LOG_INFO << "The image not update, Sleep 2 minutes, and check again";
+      Sleep(120 * 1000);
       continue;
     }
-    // 1d
-    img_setting.precision = 1;
-    DownloadFullHimawari8Image(img_setting, folder_path);
-    // 2d
-    img_setting.precision = 2;
-    DownloadFullHimawari8Image(img_setting, folder_path);
-    // 4d
-    img_setting.precision = 4;
-    DownloadFullHimawari8Image(img_setting, folder_path);
-    LOG_INFO << "Sleep 30 minuter ... ..., go to next loop";
-    Sleep(30 * 1000);
+    ImageSetting::Ptr isp(new ImageSetting);
+    *(isp.get()) = img_setting;
+    DownloadingTask::Ptr task(new DownloadingTask(
+                                isp, folder_path,
+                                shared_from_this()));
+    task->StartDownloading();
+    LOG_INFO << "Sleep 4 minuter ... ..., go to next loop";
+    Sleep(4 * 1000);
   }
   return true;
 }
@@ -229,7 +275,7 @@ bool DownloadServer::FormatDateToImageSetting(const std::string &date,
   // Clear image setting
   memset((void *)&(img_setting.img_time), 0, sizeof(HimTime));
   const char *format_string = date.c_str();
-  sscanf(format_string, "%d-%d-%d %d:%d:%d",
+  sscanf(format_string, "%d-%d-%d %d:%d",
          &img_setting.img_time.year,
          &img_setting.img_time.month,
          &img_setting.img_time.mday,
@@ -301,24 +347,45 @@ const std::string DownloadServer::GeneartorFullFilePath(
           img_setting.precision);
   return FILE_PATH;
 }
-
-void DownloadServer::InsertTask(ImageSetting &img_setting,
-                                const std::string folder_path,
-                                std::size_t try_times) {
-  Task::Ptr task(new Task);
-  task->try_times = try_times;
-  task->img_setting = img_setting;
-  task->folder_path = folder_path;
-  task_queue_.push_back(task);
+const std::string DownloadServer::GetFileName(ImageSetting &img_setting) {
+  static const char FILE_FORMAT[] = "%04d_%02d_%02d_%02d_%02d_00_%dd_%d_%d.png";
+  static char FILE_PATH[MAX_URL_SIZE];
+  sprintf(FILE_PATH, FILE_FORMAT,
+          img_setting.img_time.year,
+          img_setting.img_time.month,
+          img_setting.img_time.mday,
+          img_setting.img_time.hour,
+          img_setting.img_time.minute,
+          img_setting.precision,
+          img_setting.x,
+          img_setting.y);
+  return FILE_PATH;
+}
+const std::string DownloadServer::GetCompositeFileName(
+  ImageSetting &img_setting) {
+  static const char FILE_FORMAT[] = "%04d_%02d_%02d_%02d_%02d_00_%dd.png";
+  static char FILE_PATH[MAX_URL_SIZE];
+  sprintf(FILE_PATH, FILE_FORMAT,
+          img_setting.img_time.year,
+          img_setting.img_time.month,
+          img_setting.img_time.mday,
+          img_setting.img_time.hour,
+          img_setting.img_time.minute,
+          img_setting.precision);
+  return FILE_PATH;
 }
 
-bool DownloadServer::RunTask() {
-  for(std::size_t i = 0; i < task_queue_.size(); i++) {
+bool DownloadServer::RunTask(std::vector<Task::Ptr> &task_queue) {
+  for(std::size_t i = 0; i < task_queue.size(); i++) {
     bool is_successful = false;
-    for(std::size_t tt = 0; tt < task_queue_[i]->try_times; tt++) {
-      is_successful = DownloadHimawari8Image(task_queue_[i]->img_setting,
-                                             task_queue_[i]->folder_path);
+    for(std::size_t tt = 0; tt < task_queue[i]->try_times; tt++) {
+      is_successful = DownloadHimawari8Image(task_queue[i]->img_setting,
+                                             task_queue[i]->folder_path);
       if(is_successful) {
+        if(is_upload_) {
+          AbsoluteUploadImage(task_queue[i]->img_setting,
+                              task_queue[i]->folder_path);
+        }
         break;
       }
     }
@@ -327,6 +394,143 @@ bool DownloadServer::RunTask() {
     }
   }
   return true;
+}
+
+bool DownloadServer::UploadImage(ImageSetting &img_setting) {
+  const char POST_URL[] =
+    "http://192.168.48.141/uploadservices/index.php?time=1450991400&name=4d_2_1.png&time_str=2015_12_25_05_10_00";
+  std::string image_data;
+  if(!LoadLocalFile("F:/code/osc/himawari8_service/bin/image/2015_12_25_05_10_00_4d_2_1.png", image_data)) {
+    return false;
+  }
+  std::string rep_data;
+  curl_service_->SyncProcessPostRequest(POST_URL, image_data, rep_data);
+  LOG(INFO) << rep_data;
+  return true;
+}
+
+static const char URL_BASE[] =
+  "http://192.168.48.141/uploadservices/index.php?";
+
+bool DownloadServer::AbsoluteUploadImage(ImageSetting &img_setting,
+    const std::string folder_path, bool add_precision) {
+  std::stringstream ss;
+  std::string image_data;
+  ss << URL_BASE;
+  // Add the timestamp
+  ss << "time=" << img_setting.img_time.ToTimeStamp();
+  // Add the file name
+  if(add_precision) {
+    ss << "&name=" << img_setting.precision << "d_"
+       << img_setting.x << "_"
+       << img_setting.y << ".png";
+    LoadLocalFile(GeneartorFilePath(img_setting, folder_path), image_data);
+  } else {
+    ss << "&name=" << img_setting.precision << "d.png";
+    LoadLocalFile(GeneartorFullFilePath(img_setting, folder_path), image_data);
+  }
+  // Add the time_str
+  ss << "&time_str=" << img_setting.img_time.ToString();
+  return UploadImageToOSS(ss.str(), image_data);
+}
+
+bool DownloadServer::UploadImageToOSS(const std::string &url,
+                                      const std::string &image_data) {
+  std::string rep_data;
+  LOG(WARNING) << url;
+  for(int i = 0; i < 4; i++) {
+    rep_data.clear();
+    Json::Value value;
+    Json::Reader reader;
+    bool res = curl_service_->SyncProcessPostRequest(url, image_data, rep_data);
+    if(!res) {
+      continue;
+    }
+    LOG(INFO) << rep_data;
+    WriteDataToLog(url);
+    WriteDataToLog(rep_data);
+    if(!reader.parse(rep_data, value)) {
+      continue;
+    }
+    if(value.isNull()) {
+      continue;
+    }
+    int res_code = value["code"].asInt();
+    if(res_code != 200) {
+      continue;
+    } else {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool DownloadServer::LoadLocalFile(const std::string &path_name,
+                                   std::string &res_data) {
+  FILE *fp = fopen(path_name.c_str(), "rb");
+  if(fp == NULL) {
+    LOG(ERROR) << "Open the file getting error " << path_name;
+    return false;
+  }
+  char read_buffer[1024];
+  while(!feof(fp)) {
+    std::size_t read_size = fread(read_buffer, 1, 1024, fp);
+    if(read_size > 0) {
+      res_data.append(read_buffer, read_size);
+      continue;
+    } else {
+      break;
+    }
+  }
+  fclose(fp);
+  return true;
+}
+
+void DownloadServer::WriteDataToLog(const std::string &data) {
+  FILE *fp = fopen("F:/code/osc/himawari8_service/bin/image_auto/log.txt", "ab");
+  if(fp == NULL) {
+    LOG(ERROR) << "Open the file getting error ";
+    return;
+  }
+  const char LRLN[] = "\r\n";
+  fwrite(data.c_str(), 1, data.size(), fp);
+  fwrite(LRLN, 1, 2, fp);
+  fclose(fp);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+DownloadingTask::DownloadingTask(ImageSetting::Ptr image_setting,
+                                 const std::string folder_path,
+                                 DownloadServerPtr download_server)
+  : download_server_(download_server),
+    img_setting_(image_setting),
+    folder_path_(folder_path) {
+}
+
+DownloadingTask::~DownloadingTask() {
+}
+
+void DownloadingTask::StartDownloading() {
+  downloading_thread_.reset(new std::thread(
+                              std::bind(&DownloadingTask::OnThreadDownloading,
+                                        shared_from_this())));
+  downloading_thread_->detach();
+}
+
+void DownloadingTask::OnThreadDownloading() {
+  // 1d
+  img_setting_->precision = 1;
+  download_server_->DownloadFullHimawari8Image(
+    *(img_setting_.get()), folder_path_);
+  // 2d
+  img_setting_->precision = 2;
+  download_server_->DownloadFullHimawari8Image(
+    *(img_setting_.get()), folder_path_);
+  // 4d
+  img_setting_->precision = 4;
+  download_server_->DownloadFullHimawari8Image(
+    *(img_setting_.get()), folder_path_);
+  downloading_thread_.reset();
 }
 
 }  // namespace himsev

@@ -31,22 +31,31 @@ int main(int argv, char* argc[]) {
   FLAGS_stderrthreshold = 0;
   FLAGS_colorlogtostderr = true;
 #endif
+  std::string download_folder;
+  if(argv == 2) {
+    download_folder = argc[1];
+  } else {
+    download_folder = DEFAULT_IMG_FOLDER_PATH;
+  }
   // Init the curl service
   himsev::CurlService::Ptr curl_service =
     himsev::CurlService::InitCurlService();
 
-  himsev::DownloadServer download_server(curl_service);
+  himsev::DownloadServer::Ptr download_server(
+    new himsev::DownloadServer(curl_service, true));
 
   himsev::ImageSetting image_setting;
-  image_setting.precision = 4;
+  image_setting.precision = 1;
   image_setting.img_time.year = 2015;
   image_setting.img_time.month = 12;
   image_setting.img_time.mday = 19;
-  image_setting.img_time.hour = 1;
+  image_setting.img_time.hour = 8;
   image_setting.img_time.minute = 30;
   image_setting.x = 0;
   image_setting.y = 0;
 
+  //const std::string date = "2015-11-19 12:12:00";
+  //download_server->FormatDateToImageSetting(date.c_str(), image_setting);
   //download_server.DownloadHimawari8Image(
   //  image_setting, "F:/code/osc/himawari8_service/bin/image/");
 
@@ -55,7 +64,9 @@ int main(int argv, char* argc[]) {
 
   //download_server.DownloadFullHimawari8Image(image_setting,
   //                           DEFAULT_IMG_FOLDER_PATH);
-  download_server.AutoDownloadFullHimawari8Image(DEFAULT_IMG_FOLDER_PATH);
+  download_server->AutoDownloadFullHimawari8Image(download_folder);
+  //download_server->UploadImage(image_setting);
+  //download_server->AbsoluteUploadImage(image_setting, DEFAULT_IMG_FOLDER_PATH);
   //download_server.AutoDownloadHimawari8Imagg(
   //  DEFAULT_IMG_FOLDER_PATH, 1);
   return 0;
