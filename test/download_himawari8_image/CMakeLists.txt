@@ -35,20 +35,20 @@ endforeach()
 IF(WIN32)
 	SET(SRC_LIST 
 		${CMAKE_CURRENT_SOURCE_DIR}/download_himawari8_image_main.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/getopt.c
+		${CMAKE_CURRENT_SOURCE_DIR}/getopt.h
 		)
 	SOURCE_GROUP(${BUILD_PROJECT_NAME} FILES
 		${CMAKE_CURRENT_SOURCE_DIR}/download_himawari8_image_main.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/getopt.c
+		${CMAKE_CURRENT_SOURCE_DIR}/getopt.h
 	)
 ELSE()
 	SET(SRC_LIST 
 		${CMAKE_CURRENT_SOURCE_DIR}/download_himawari8_image_main.cpp
-		${CMAKE_CURRENT_SOURCE_DIR}/getopt.c
-		${CMAKE_CURRENT_SOURCE_DIR}/getopt.h
 		)
 	SOURCE_GROUP(${BUILD_PROJECT_NAME} FILES
 		${CMAKE_CURRENT_SOURCE_DIR}/download_himawari8_image_main.cpp
-		${CMAKE_CURRENT_SOURCE_DIR}/getopt.c
-		${CMAKE_CURRENT_SOURCE_DIR}/getopt.h
 	)
 ENDIF()
 #########################################################################
