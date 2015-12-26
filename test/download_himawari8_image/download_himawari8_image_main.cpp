@@ -44,15 +44,15 @@ int main(int argv, char* argc[]) {
   himsev::DownloadServer::Ptr download_server(
     new himsev::DownloadServer(curl_service, true));
 
-  himsev::ImageSetting image_setting;
-  image_setting.precision = 1;
-  image_setting.img_time.year = 2015;
-  image_setting.img_time.month = 12;
-  image_setting.img_time.mday = 19;
-  image_setting.img_time.hour = 8;
-  image_setting.img_time.minute = 30;
-  image_setting.x = 0;
-  image_setting.y = 0;
+  himsev::ImageSettings image_settings;
+  image_settings.precision = 1;
+  image_settings.img_time.year = 2015;
+  image_settings.img_time.month = 12;
+  image_settings.img_time.mday = 19;
+  image_settings.img_time.hour = 8;
+  image_settings.img_time.minute = 30;
+  image_settings.x = 0;
+  image_settings.y = 0;
 
   //const std::string date = "2015-11-19 12:12:00";
   //download_server->FormatDateToImageSetting(date.c_str(), image_setting);
