@@ -78,7 +78,7 @@ static size_t write_callback(void *data,
 }
 
 struct PostData {
-  const char *pdata;
+  const unsigned char *pdata;
   std::size_t cur_pos;
   std::size_t data_size;
 };
@@ -97,7 +97,7 @@ static size_t read_callback(void *ptr, size_t size, size_t nmemb, void *userp) {
   }
   memcpy(ptr, post_data->pdata + post_data->cur_pos, write_size);
   post_data->cur_pos += write_size;
-  LOG(INFO) << post_data->cur_pos;
+  // LOG(INFO) << post_data->cur_pos;
   return write_size;
 }
 //////////////////////////////////////////////////////////////////////////////
@@ -128,8 +128,10 @@ bool CurlService::SyncProcessGetRequest(
   return false;
 }
 
-bool CurlService::SyncProcessPostRequest(const std::string &url,
-    const std::string &data, std::string &rep) {
+bool CurlService::SyncProcessPostRequest(const std::string &url,  // NOLINT
+    const unsigned char *data,
+    std::size_t data_size,
+    std::string &rep) {
   //std::lock_guard<std::mutex> lock_copy(kvs_mutex_);
   CURL *curl;
   CURLcode res;
@@ -137,24 +139,25 @@ bool CurlService::SyncProcessPostRequest(const std::string &url,
   PostData post_data;
 
   post_data.cur_pos = 0;
-  post_data.data_size = data.size();
-  post_data.pdata = data.c_str();
+  post_data.data_size = data_size;
+  post_data.pdata = data;
 
   curl = curl_easy_init();
   if (curl) {
     curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT,30L);
-    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 20L);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT,240L);
+    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 60L);
     curl_easy_setopt(curl, CURLOPT_POST, 1L);
     /* we want to use our own read function */
     curl_easy_setopt(curl, CURLOPT_READFUNCTION, read_callback);
     curl_easy_setopt(curl, CURLOPT_READDATA, &post_data);
 
     /* pointer to pass to our read function */
-    curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, data.size());
+    curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, data_size);
 
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &rep);
+    curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
     // curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
     // setting the content type
 

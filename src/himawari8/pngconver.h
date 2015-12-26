@@ -22,18 +22,10 @@
 #include <vector>
 #include "base/baseinclude.h"
 #include "lodepng/lodepng.h"
+#include "himawari8/image_settings.h"
 
 namespace himsev {
 
-struct ImageItem {
-  std::string filename;
-  unsigned int width;
-  unsigned int height;
-  std::vector<unsigned char> image_data;
-};
-
-typedef std::vector<ImageItem> ImageItems;
-typedef std::vector<ImageItems> CompositeSettings;
 
 class PngConver : public noncopyable {
  public:
@@ -43,6 +35,8 @@ class PngConver : public noncopyable {
                                  unsigned int matrix_size);
   static bool CompositeImage(CompositeSettings &com_settings,
                              const std::string &new_filename);
+  static bool CompositeImage(CompositeSettings &com_settings,
+                             std::vector<unsigned char> &out_buffer);
  private:
   static void CopyImageData(const std::vector<unsigned char> &in_image,
                             std::vector<unsigned char> &out_image,

@@ -42,6 +42,22 @@ bool encodeOneStep(const char* filename,
   }
   return true;
 }
+
+bool EncodeToBuffer(std::vector<unsigned char>& out_buffer,
+                    std::vector<unsigned char>& image,
+                    unsigned width, unsigned height) {
+  //Encode the image
+  unsigned error = lodepng::encode(out_buffer,
+                                   (const unsigned char *)&(image[0]),
+                                   width, height, LCT_RGBA, 8);
+  //if there's an error, display it
+  if(error) {
+    LOG_ERROR << "encoder error " << error << ": "
+              << lodepng_error_text(error);
+    return false;
+  }
+  return true;
+}
 /*
 Display general info about the PNG.
 */
@@ -409,18 +425,19 @@ bool DecondCompositeSettins(CompositeSettings &com_settings) {
   for(unsigned int i = 0; i < matrix_size; i ++) {
     ImageItems &image_items = com_settings[i];
     for(unsigned int j = 0; j < matrix_size; j++) {
-      ImageItem &item = image_items[j];
+      ImageItem::Ptr &item = image_items[j];
       bool ignore_checksums = false;
-      std::vector<unsigned char> buffer;
+      //std::vector<unsigned char> buffer;
       //load the image file with given filename
-      lodepng::load_file(buffer, item.filename);
+      //lodepng::load_file(buffer, item->filename);
       lodepng::State state;
       if(ignore_checksums) {
         state.decoder.ignore_crc = 1;
         state.decoder.zlibsettings.ignore_adler32 = 1;
       }
-      unsigned error = lodepng::decode(item.image_data,
-                                       item.width, item.height, state, buffer);
+      unsigned error = lodepng::decode(item->raw_image_data,
+                                       item->width, item->height,
+                                       state, item->image_data);
 
       if(error) {
         LOG_ERROR << "decoder error "
@@ -446,17 +463,46 @@ bool PngConver::CompositeImage(CompositeSettings &com_settings,
   // 2.
   for(unsigned int h = 0; h < matrix_size; h++) {
     for(unsigned int w = 0; w < matrix_size; w++) {
-      CopyImageToPos((unsigned char *)&(image_buffer[0]),
-                     max_image_size,
-                     w, h,
-                     (const unsigned char *)&(com_settings[w][h].image_data[0]),
-                     HIMAWARI8_IMAGE_SIZE,
-                     HIMAWARI8_IMAGE_SIZE);
+      CopyImageToPos(
+        (unsigned char *)&(image_buffer[0]),
+        max_image_size,
+        w, h,
+        (const unsigned char *)&(com_settings[w][h]->raw_image_data[0]),
+        HIMAWARI8_IMAGE_SIZE,
+        HIMAWARI8_IMAGE_SIZE);
     }
   }
   return encodeOneStep(new_filename.c_str(),
                        image_buffer,
                        matrix_size * HIMAWARI8_IMAGE_SIZE,
                        matrix_size * HIMAWARI8_IMAGE_SIZE);
+}
+bool PngConver::CompositeImage(CompositeSettings &com_settings,
+                               std::vector<unsigned char> &out_buffer) {
+  std::vector<unsigned char> image_buffer;
+  unsigned matrix_size = com_settings.size();
+  unsigned int max_image_size = matrix_size * HIMAWARI8_IMAGE_SIZE * 4;
+  image_buffer.resize(HIMAWARI8_IMAGE_SIZE * HIMAWARI8_IMAGE_SIZE * 4
+                      * matrix_size * matrix_size);
+  // 1. decond the file
+  if(!DecondCompositeSettins(com_settings)) {
+    return false;
+  }
+  // 2.
+  for(unsigned int h = 0; h < matrix_size; h++) {
+    for(unsigned int w = 0; w < matrix_size; w++) {
+      CopyImageToPos(
+        (unsigned char *)&(image_buffer[0]),
+        max_image_size,
+        w, h,
+        (const unsigned char *)&(com_settings[w][h]->raw_image_data[0]),
+        HIMAWARI8_IMAGE_SIZE,
+        HIMAWARI8_IMAGE_SIZE);
+    }
+  }
+  return EncodeToBuffer(out_buffer,
+                        image_buffer,
+                        matrix_size * HIMAWARI8_IMAGE_SIZE,
+                        matrix_size * HIMAWARI8_IMAGE_SIZE);
 }
 }  // namespace himsev

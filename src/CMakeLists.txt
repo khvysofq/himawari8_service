@@ -53,6 +53,8 @@ SET(SRC_LIST
 	${CMAKE_CURRENT_SOURCE_DIR}/himawari8/download_server.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/himawari8/pngconver.h
 	${CMAKE_CURRENT_SOURCE_DIR}/himawari8/pngconver.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/himawari8/image_settings.h
+	${CMAKE_CURRENT_SOURCE_DIR}/himawari8/image_settings.cpp
 	
 	${CMAKE_CURRENT_SOURCE_DIR}/lodepng/lodepng.h
 	${CMAKE_CURRENT_SOURCE_DIR}/lodepng/lodepng.cpp
@@ -84,6 +86,8 @@ SOURCE_GROUP(himawari8 FILES
 	${CMAKE_CURRENT_SOURCE_DIR}/himawari8/download_server.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/himawari8/pngconver.h
 	${CMAKE_CURRENT_SOURCE_DIR}/himawari8/pngconver.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/himawari8/image_settings.h
+	${CMAKE_CURRENT_SOURCE_DIR}/himawari8/image_settings.cpp
 	)
 SOURCE_GROUP(lodepng FILES
 	${CMAKE_CURRENT_SOURCE_DIR}/lodepng/lodepng.h

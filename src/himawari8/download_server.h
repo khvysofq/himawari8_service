@@ -28,38 +28,9 @@
 
 namespace himsev {
 
-struct HimTime {
-  // years since 1900
-  uint32 year;
-  // months since January - [1,12]
-  uint32 month;
-  // day of the month - [1,31]
-  uint32 mday;
-  // hours since midnight - [0,23]
-  uint32 hour;
-  // minutes after the hour - [0,59]
-  uint32 minute;
-  HimTime &operator=(HimTime &other);
-  bool operator==(HimTime &other);
-  bool operator!=(HimTime &other) {
-    return !operator==(other);
-  }
-  time_t ToTimeStamp();
-  const std::string ToString();
-};
-
-struct ImageSetting {
-  typedef std::shared_ptr<ImageSetting> Ptr;
-  uint32 precision;
-  HimTime img_time;
-  uint32 x;
-  uint32 y;
-  ImageSetting &operator=(ImageSetting &other);
-};
-
 struct Task {
   typedef std::shared_ptr<Task> Ptr;
-  ImageSetting img_setting;
+  ImageItem::Ptr image_item;
   //std::string req_url;
   std::string folder_path;
   std::size_t try_times;
@@ -72,7 +43,7 @@ class DownloadingTask :public noncopyable,
   public std::enable_shared_from_this<DownloadingTask> {
  public:
   typedef std::shared_ptr<DownloadingTask> Ptr;
-  DownloadingTask(ImageSetting::Ptr image_setting,
+  DownloadingTask(ImageItem::Ptr image_item,
                   const std::string folder_path,
                   DownloadServerPtr download_server);
   virtual ~DownloadingTask();
@@ -80,7 +51,7 @@ class DownloadingTask :public noncopyable,
  private:
   void OnThreadDownloading();
  private:
-  ImageSetting::Ptr img_setting_;
+  ImageItem::Ptr image_item_;
   std::string folder_path_;
   DownloadServerPtr download_server_;
   std::shared_ptr<std::thread> downloading_thread_;
@@ -94,40 +65,40 @@ class DownloadServer : public noncopyable,
   virtual ~DownloadServer();
 
   // Download
-  bool DownloadHimawari8Image(ImageSetting &img_setting,
+  bool DownloadHimawari8Image(ImageItem::Ptr image_item,
                               const std::string folder_path);
-  bool DownloadLastHimawari8Image(ImageSetting &img_setting,
+  bool DownloadLastHimawari8Image(ImageSettings &image_settings,
                                   const std::string folder_path);
-  bool DownloadFullHimawari8Image(ImageSetting &img_setting,
+  bool DownloadFullHimawari8Image(ImageItem::Ptr image_item,
                                   const std::string folder_path);
   bool AutoDownloadFullHimawari8Image(const std::string folder_path);
   void AutoDownloadHimawari8Imagg(const std::string folder_path,
                                   uint32 precision);
   bool FormatDateToImageSetting(const std::string &date,
-                                ImageSetting &img_setting);
-  bool UploadImage(ImageSetting &img_setting);
+                                ImageSettings &image_settings);
+  bool UploadImage(ImageSettings &image_settings);
 
-  bool AbsoluteUploadImage(ImageSetting &img_setting,
-                           const std::string folder_path,
+  bool AbsoluteUploadImage(ImageItem::Ptr image_item,
                            bool add_precision = true);
  private:
-  bool GetLastHimawari8ImageTime(ImageSetting &img_setting);
+  bool GetLastHimawari8ImageTime(ImageSettings &image_settings);
 
 
-  bool SaveImageFile(ImageSetting &img_setting,
+  bool SaveImageFile(ImageSettings &image_settings,
                      const std::string folder_path,
                      const std::string &image_buffer);
-  const std::string GeneartorFilePath(ImageSetting &img_setting,
+  const std::string GeneartorFilePath(ImageSettings &image_settings,
                                       const std::string folder_path);
-  const std::string GeneartorFullFilePath(ImageSetting &img_setting,
+  const std::string GeneartorFullFilePath(ImageSettings &image_settings,
                                           const std::string folder_path);
-  const std::string GetFileName(ImageSetting &img_setting);
-  const std::string GetCompositeFileName(ImageSetting &img_setting);
-  void DumpImageSetting(ImageSetting &img_setting);
+  const std::string GetFileName(ImageSettings &image_settings);
+  const std::string GetCompositeFileName(ImageSettings &image_settings);
+  void DumpImageSetting(ImageSettings &image_settings);
 
   bool RunTask(std::vector<Task::Ptr> &task_queue);
   bool UploadImageToOSS(const std::string &url,
-                        const std::string &image_data);
+                        const unsigned char *data,
+                        std::size_t data_size);
   bool LoadLocalFile(const std::string &path_name, std::string &res_data);
   void WriteDataToLog(const std::string &data);
  private:

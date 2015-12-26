@@ -37,7 +37,9 @@ class CurlService : public noncopyable,
 
   bool SyncProcessGetRequest(const std::string &url, std::string &rep);  // NOLINT
   bool SyncProcessPostRequest(const std::string &url,  // NOLINT
-                              const std::string &data, std::string &rep);  // NOLINT
+                              const unsigned char *data,
+                              std::size_t data_size,
+                              std::string &rep);  // NOLINT
  private:
   //
   CurlService();
