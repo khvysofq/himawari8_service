@@ -364,7 +364,7 @@ bool DownloadServer::RunTask(std::vector<Task::Ptr> &task_queue) {
 
 bool DownloadServer::UploadImage(ImageSettings &image_settings) {
   const char POST_URL[] =
-    "http://192.168.48.141/uploadservices/index.php?time=1450991400&name=4d_2_1.png&time_str=2015_12_25_05_10_00";
+    "http://127.0.0.1:5291/index.php?time=1450991400&name=4d_2_1.png&time_str=2015_12_25_05_10_00";
   std::string image_data;
   if(!LoadLocalFile("F:/code/osc/himawari8_service/bin/image/2015_12_25_05_10_00_4d_2_1.png", image_data)) {
     return false;
@@ -380,7 +380,7 @@ bool DownloadServer::UploadImage(ImageSettings &image_settings) {
 }
 
 static const char URL_BASE[] =
-  "http://192.168.48.141/uploadservices/index.php?";
+  "http://127.0.0.1:5291/index.php?";
 
 bool DownloadServer::AbsoluteUploadImage(ImageItem::Ptr image_item,
     bool add_precision) {
