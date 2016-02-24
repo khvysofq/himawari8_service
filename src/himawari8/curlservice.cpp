@@ -109,9 +109,12 @@ bool CurlService::SyncProcessGetRequest(
 
   curl = curl_easy_init();
   if (curl) {
+    //curl_easy_setopt(curl, CURLOPT_PROXY, "192.168.1.61:10003");
     curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
     curl_easy_setopt(curl, CURLOPT_TIMEOUT,30L);
     curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 20L);
+    curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 5);
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &rep);
     // Perform the request, res will get the return code
@@ -144,6 +147,7 @@ bool CurlService::SyncProcessPostRequest(const std::string &url,  // NOLINT
 
   curl = curl_easy_init();
   if (curl) {
+    //curl_easy_setopt(curl, CURLOPT_PROXY, "192.168.1.61:10003");
     curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
     curl_easy_setopt(curl, CURLOPT_TIMEOUT,240L);
     curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 60L);
